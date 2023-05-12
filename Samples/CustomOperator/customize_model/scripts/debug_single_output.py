@@ -14,7 +14,15 @@ def create_modified_model(args):
     #insert new debug operator node into graph with given attributes and input
     inserted_node = model.graph.node.add()
     valid_output_path = args.debug_file_path.replace('/', '\\')
-    inserted_node.CopyFrom(helper.make_node('Debug', [args.intermediate_output], ['unused_' + args.intermediate_output], file_type=args.debug_file_type, file_path=valid_output_path))
+    inserted_node.CopyFrom(
+        helper.make_node(
+            'Debug',
+            [args.intermediate_output],
+            [f'unused_{args.intermediate_output}'],
+            file_type=args.debug_file_type,
+            file_path=valid_output_path,
+        )
+    )
 
     onnx.save(model, modified_path)
 

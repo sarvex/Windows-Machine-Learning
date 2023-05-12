@@ -23,27 +23,31 @@ def save_onnx(onnx_model, destination):
     if destination_extension == 'onnx':
         onnxmltools.utils.save_model(onnx_model, destination)
     else:
-        raise RuntimeError('Conversion to extension {} is not supported'.format(destination_extension))
+        raise RuntimeError(
+            f'Conversion to extension {destination_extension} is not supported'
+        )
 
 def get_opset(ONNXVersion):
-    if '1.2' == ONNXVersion:
+    if ONNXVersion == '1.2':
         return 7
-    elif '1.3' == ONNXVersion:
+    elif ONNXVersion == '1.3':
         return 8
-    elif '1.4' == ONNXVersion:
+    elif ONNXVersion == '1.4':
         return 9
-    elif '1.5' == ONNXVersion:
+    elif ONNXVersion == '1.5':
         return 10
-    elif '1.6' == ONNXVersion:
+    elif ONNXVersion == '1.6':
         return 11
-    elif '1.7' == ONNXVersion:
+    elif ONNXVersion == '1.7':
         return 12
-    elif '1.8' == ONNXVersion:
+    elif ONNXVersion == '1.8':
         return 13
-    elif '1.9' == ONNXVersion:
+    elif ONNXVersion == '1.9':
         return 14
     else:
-        print('WARNING: ONNX Version ' + ONNXVersion + ' does not map to any known opset version, defaulting to opset V7')
+        print(
+            f'WARNING: ONNX Version {ONNXVersion} does not map to any known opset version, defaulting to opset V7'
+        )
         return 7
 
 
@@ -52,41 +56,47 @@ def coreml_converter(args):
     # outside its expected range. We don't want it to import these packages (since they are big and take seconds to
     # load) and we don't want to clutter the console with unrelated Keras warnings when converting from CoreML.
 
-        
+
     import sys
     sys.modules['keras'] = None
     import coremltools
     from onnxmltools.convert import convert_coreml
     source_model = coremltools.utils.load_spec(args.source)
-    onnx_model = convert_coreml(source_model, name=args.name, target_opset=get_opset(args.ONNXVersion))
-    return onnx_model
+    return convert_coreml(
+        source_model, name=args.name, target_opset=get_opset(args.ONNXVersion)
+    )
 
 
 def keras_converter(args):
     from onnxmltools.convert import convert_keras
     from keras.models import load_model
     source_model = load_model(args.source)
-    onnx_model = convert_keras(source_model, name = args.name, target_opset=get_opset(args.ONNXVersion))
-    return onnx_model
+    return convert_keras(
+        source_model, name=args.name, target_opset=get_opset(args.ONNXVersion)
+    )
 
 def scikit_learn_converter(args):
     from sklearn.externals import joblib
-    source_model = joblib.load(args.source) 
+    source_model = joblib.load(args.source)
     from onnxmltools.convert.common.data_types import FloatTensorType
     from onnxmltools.convert import convert_sklearn
 
-    onnx_model = convert_sklearn(source_model, initial_types=[('input', FloatTensorType(source_model.coef_.shape))],
-                                  target_opset=get_opset(args.ONNXVersion))
-    return onnx_model
+    return convert_sklearn(
+        source_model,
+        initial_types=[('input', FloatTensorType(source_model.coef_.shape))],
+        target_opset=get_opset(args.ONNXVersion),
+    )
 
 def xgboost_converter(args):
     from sklearn.externals import joblib
     source_model = joblib.load(args.source)
     from onnxmltools.convert import convert_xgboost
     from onnxmltools.convert.common.data_types import FloatTensorType
-    onnx_model = convert_xgboost(source_model,initial_types=[('input', FloatTensorType(shape=[1, 'None']))],
-                                  target_opset=get_opset(args.ONNXVersion))
-    return onnx_model
+    return convert_xgboost(
+        source_model,
+        initial_types=[('input', FloatTensorType(shape=[1, 'None']))],
+        target_opset=get_opset(args.ONNXVersion),
+    )
 
 def libSVM_converter(args):
     # not using target_opset for libsvm convert since the converter is only generating operators in ai.onnx.ml domain
@@ -95,9 +105,11 @@ def libSVM_converter(args):
     source_model = svm_load_model(args.source)
     from onnxmltools.convert import convert_libsvm
     from onnxmltools.convert.common.data_types import FloatTensorType
-    onnx_model = convert_libsvm(source_model, initial_types=[('input', FloatTensorType([1, 'None']))],
-                                 target_opset=get_opset(args.ONNXVersion))
-    return onnx_model
+    return convert_libsvm(
+        source_model,
+        initial_types=[('input', FloatTensorType([1, 'None']))],
+        target_opset=get_opset(args.ONNXVersion),
+    )
 
 def convert_tensorflow_file(filename, opset, input_names, output_names):
     import tensorflow
@@ -117,8 +129,7 @@ def tensorFlow_converter(args):
     return convert_tensorflow_file(args.source, get_opset(args.ONNXVersion), args.inputNames.split(), args.outputNames.split())
 
 def onnx_converter(args):
-    onnx_model = onnxmltools.load_model(args.source)
-    return onnx_model
+    return onnxmltools.load_model(args.source)
 
 framework_converters = {
     '': onnx_converter,
@@ -146,19 +157,23 @@ def main(args):
     suffix_converter = suffix_converters.get(source_extension) 
 
     if not (frame_converter or suffix_converter):
-        raise RuntimeError('Conversion from extension {} is not supported'.format(source_extension))
+        raise RuntimeError(
+            f'Conversion from extension {source_extension} is not supported'
+        )
 
     if frame_converter and suffix_converter and (frame_converter != suffix_converter):
-        raise RuntimeError('model with extension {} do not come from {}'.format(source_extension, framework))
+        raise RuntimeError(
+            f'model with extension {source_extension} do not come from {framework}'
+        )
 
     onnx_model = None
     if frame_converter:
         onnx_model = frame_converter(args)
     else:
         onnx_model = suffix_converter(args)
-    
-    
-    if 'tensorflow' == framework:
+
+
+    if framework == 'tensorflow':
         with open(args.destination, 'wb') as file:
             file.write(onnx_model.SerializeToString())
     else:

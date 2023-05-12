@@ -70,10 +70,9 @@ class Network(nn.Module):
 
 
    def forward(self, x):
-       x1 = F.relu(self.layer1(x))
-       x2 = F.relu(self.layer2(x1))
-       x3 = self.layer3(x2)
-       return x3
+      x1 = F.relu(self.layer1(x))
+      x2 = F.relu(self.layer2(x1))
+      return self.layer3(x2)
 
 # Instantiate the model
 model = Network(input_size, output_size)
@@ -174,30 +173,30 @@ def test():
 
 # Optional: Function to test which species were easier to predict 
 def test_species():
-    # Load the model that we saved at the end of the training loop
-    model = Network(input_size, output_size)
-    path = "NetModel.pth"
-    model.load_state_dict(torch.load(path))
-    
-    labels_length = len(labels)          # how many labels of Irises we have. = 3 in our database.
-    labels_correct = list(0. for i in range(labels_length)) # list to calculate correct labels [how many correct setosa, how many correct versicolor, how many correct virginica]
-    labels_total = list(0. for i in range(labels_length))   # list to keep the total # of labels per type [total setosa, total versicolor, total virginica]
- 
-    with torch.no_grad():
-        for data in test_loader:
-            inputs, outputs = data
-            predicted_outputs = model(inputs)
-            _, predicted = torch.max(predicted_outputs, 1)
-            
-            label_correct_running = (predicted == outputs).squeeze()
-            label = outputs[0]
-            if label_correct_running.item(): 
-                labels_correct[label] += 1
-            labels_total[label] += 1 
- 
-    label_list = list(labels.keys())
-    for i in range(output_size):
-        print('Accuracy to predict %5s : %2d %%' % (label_list[i], 100 * labels_correct[i] / labels_total[i]))
+   # Load the model that we saved at the end of the training loop
+   model = Network(input_size, output_size)
+   path = "NetModel.pth"
+   model.load_state_dict(torch.load(path))
+
+   labels_length = len(labels)          # how many labels of Irises we have. = 3 in our database.
+   labels_correct = [0. for _ in range(labels_length)]
+   labels_total = [0. for _ in range(labels_length)]
+
+   with torch.no_grad():
+       for data in test_loader:
+           inputs, outputs = data
+           predicted_outputs = model(inputs)
+           _, predicted = torch.max(predicted_outputs, 1)
+
+           label_correct_running = (predicted == outputs).squeeze()
+           label = outputs[0]
+           if label_correct_running.item(): 
+               labels_correct[label] += 1
+           labels_total[label] += 1 
+
+   label_list = list(labels.keys())
+   for i in range(output_size):
+       print('Accuracy to predict %5s : %2d %%' % (label_list[i], 100 * labels_correct[i] / labels_total[i]))
 
 
 def convert():

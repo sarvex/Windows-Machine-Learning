@@ -18,10 +18,9 @@ def get_netron_static_scripts(src_path):
     with open(src_path / 'view-browser.html') as f:
         scripts = []
         regex = re.compile("<script type='text/javascript' src='(.*)'></script>")
-        for line in f.readlines():
-            match = re.match(regex, line)
-            if match:
-                scripts.append(match.group(1))
+        for line in f:
+            if match := re.match(regex, line):
+                scripts.append(match[1])
         return scripts
 
 
@@ -49,11 +48,11 @@ def main():
     netron = Path('deps/Netron')
     src = netron / 'src'
     package_data, node_dependencies = get_package_data()
-    print('Netron package files:\n{}'.format(' '.join(package_data)))
-    print('Netron Node dependencies:\n{}'.format(' '.join(node_dependencies)))
+    print(f"Netron package files:\n{' '.join(package_data)}")
+    print(f"Netron Node dependencies:\n{' '.join(node_dependencies)}")
 
     static_scripts = get_netron_static_scripts(src)
-    print('These scripts will be bundled:\n{}'.format(' '.join(static_scripts)))
+    print(f"These scripts will be bundled:\n{' '.join(static_scripts)}")
     # Update script paths to point to paths before installation
     for i, script in enumerate(static_scripts):
         if script in package_data:
@@ -68,16 +67,20 @@ def main():
 
     public = Path('public')
     ignored_extensions = ['.css', '.html', '.ico']
-    package_data = [src / filename for filename in package_data if not Path(filename).suffix in ignored_extensions]
+    package_data = [
+        src / filename
+        for filename in package_data
+        if Path(filename).suffix not in ignored_extensions
+    ]
     for package_file in package_data:
         try:
             os.link(package_file, public / package_file.name)
         except FileExistsError:
             pass
         except FileNotFoundError:
-            print("Warning: Got FileNotFoundError linking {} -> {}. "
-                  "Netron's setup might be declaring files that are missing in their repository."
-                  .format(public / package_file.name, package_file))
+            print(
+                f"Warning: Got FileNotFoundError linking {public / package_file.name} -> {package_file}. Netron's setup might be declaring files that are missing in their repository."
+            )
 
     bundle_destination = public / 'netron_bundle.js'
     if rebuild_needed(static_scripts, bundle_destination):

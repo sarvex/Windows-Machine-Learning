@@ -218,8 +218,8 @@ def Convert_ONNX():
 
 # Function to test what classes performed well
 def testClassess():
-    class_correct = list(0. for i in range(number_of_labels))
-    class_total = list(0. for i in range(number_of_labels))
+    class_correct = [0. for _ in range(number_of_labels)]
+    class_total = [0. for _ in range(number_of_labels)]
     with torch.no_grad():
         for data in test_loader:
             images, labels = data
